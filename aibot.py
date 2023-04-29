@@ -13,9 +13,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 def get_chatgpt_response(prompt):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
-        message = [
-            {"role": "user", "content": prompt}
-        ]
+        messages=[{"role": "user", "content": prompt}]
     )
     print(response)
     return response.choices[0].message['content']
@@ -28,7 +26,19 @@ def generate_dalle_image(prompt):
     )
     return response['data'][0]['url']
 
-@app.route("/webhook", method=["POST"])
+@app.route("/webhook", methods=["POST"])
 def webhook():
-    request.values.get("Body", "").lower()
-    
+    incoming_message = request.values.get("Body", "").lower()
+    gpt_response = get_chatgpt_response(incoming_message)
+
+    res = MessagingResponse()
+    if "create art" in incoming_message:
+        image_url = generate_dalle_image(gpt_response)
+        res.message(gpt_response).media(image_url)
+    else:
+        res.message(gpt_response)
+
+    return str(res)
+
+if __name__ == "__main__":
+    app.run(debug=True)
